@@ -3,42 +3,39 @@ package go_progress
 import (
 	"fmt"
 	"strings"
+	"errors"
 )
 
 type Progress interface {
-	IsExceed() bool
-	Increment(inc int)
 	String() string
 }
 
 type progress struct {
-	Max int
-	Progress int
+	Width int
+	Bar *Bar
 }
 
-func NewProgress(max int) Progress {
-	return &progress{Max: max, Progress: 0}
+const (
+	defaultWidth = 80
+)
+
+func New() Progress {
+	return &progress{Width: defaultWidth, Bar : newBar()}
 }
 
-func (p *progress) IsExceed() bool {
-	if p.Progress >= p.Max {
-		return true
+func (p *progress) WithWidth(w int) (Progress, error) {
+	if w < 10 {
+		return nil, errors.New("width must be more than 10")
 	}
-	return false
-}
-
-func (p *progress) Increment(inc int) {
-	p.Progress += inc
-	if p.IsExceed() {
-		p.Progress = p.Max
-	}
+	p.Width = w
+	return p, nil
 }
 
 func (p *progress) String() string {
-	per := float64(p.Progress) / float64(p.Max) * 100
-	if p.IsExceed() {
+	per := p.Bar.percent()
+	if p.Bar.isExceed() {
 		return ""
 	} else {
-		return fmt.Sprintf("%5.1f%% [%s>%s] %d \r", per, strings.Repeat("=", int(per)), strings.Repeat(" ", 100-int(per)), p.Progress)
+		return fmt.Sprintf("%5.1f%% [%s>%s] %d \r", per, strings.Repeat("=", int(per)), strings.Repeat(" ", 100-int(per)), p.Bar.Progress)
 	}
 }
